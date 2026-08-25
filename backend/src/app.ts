@@ -7,6 +7,8 @@ import jobsAdminRoutes from "./modules/jobs/jobs.admin.routes";
 import applicationsRoutes from "./modules/applications/applications.routes";
 import applicationsAdminRoutes from "./modules/applications/applications.admin.routes";
 import dashboardRoutes from "./modules/dashboard/dashboard.routes";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger";
 
 const app = express();
 
@@ -17,8 +19,9 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-app.use("/api/auth", authRoutes);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+app.use("/api/auth", authRoutes);
 app.use("/api/catalogs", catalogsRoutes);
 
 app.use("/api/jobs", jobsRoutes);
