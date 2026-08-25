@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model admin_user {
+  id                         Int                          @id @default(autoincrement())
+  email                      String                       @unique @db.VarChar(255)
+  password_hash              String                       @db.VarChar(255)
+  full_name                  String                       @db.VarChar(150)
+  is_active                  Boolean                      @default(true)
+  application_status_history application_status_history[]
+  job                        job[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model application {
+  id                         Int                          @id @default(autoincrement())
+  job_id                     Int
+  status_id                  Int
+  full_name                  String                       @db.VarChar(150)
+  email                      String                       @db.VarChar(255)
+  phone_number               String?                      @db.VarChar(50)
+  current_position           String?                      @db.VarChar(150)
+  education                  String?                      @db.VarChar(255)
+  years_of_experience        Int?
+  expected_salary            String?                      @db.VarChar(100)
+  availability               String?                      @db.VarChar(100)
+  linkedin_portfolio         String?                      @db.VarChar(500)
+  resume_url                 String?                      @db.VarChar(500)
+  additional_comments        String?
+  created_at                 DateTime                     @default(now()) @db.Timestamp(6)
+  job                        job                          @relation(fields: [job_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_application_job")
+  application_status         application_status           @relation(fields: [status_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_application_status")
+  application_status_history application_status_history[]
+  email_queue                email_queue[]
+
+  @@index([job_id], map: "idx_application_job_id")
+  @@index([status_id], map: "idx_application_status_id")
+}
+
+model application_status {
+  id                         Int                          @id @default(autoincrement())
+  name                       String                       @unique @db.VarChar(100)
+  description                String?                      @db.VarChar(255)
+  application                application[]
+  application_status_history application_status_history[]
+}
+
+model application_status_history {
+  id                 Int                @id @default(autoincrement())
+  application_id     Int
+  status_id          Int
+  changed_by         Int
+  changed_at         DateTime           @default(now()) @db.Timestamp(6)
+  admin_user         admin_user         @relation(fields: [changed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_history_admin")
+  application        application        @relation(fields: [application_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_history_application")
+  application_status application_status @relation(fields: [status_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_history_status")
+
+  @@index([application_id], map: "idx_application_history_application_id")
+  @@index([changed_by], map: "idx_application_history_changed_by")
+  @@index([status_id], map: "idx_application_history_status_id")
+}
+
+model department {
+  id        Int     @id @default(autoincrement())
+  name      String  @unique @db.VarChar(100)
+  is_active Boolean @default(true)
+  job       job[]
+}
+
+model email_queue {
+  id             Int         @id @default(autoincrement())
+  application_id Int
+  recipient      String      @db.VarChar(255)
+  subject        String      @db.VarChar(255)
+  body           String
+  is_html        Boolean     @default(true)
+  is_sent        Boolean     @default(false)
+  created_at     DateTime    @default(now()) @db.Timestamp(6)
+  sent_at        DateTime?   @db.Timestamp(6)
+  application    application @relation(fields: [application_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_email_application")
+
+  @@index([application_id], map: "idx_email_queue_application_id")
+  @@index([is_sent, created_at], map: "idx_email_queue_pending")
+}
+
+model employment_type {
+  id        Int     @id @default(autoincrement())
+  name      String  @unique @db.VarChar(100)
+  is_active Boolean @default(true)
+  job       job[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model job {
+  id                  Int             @id @default(autoincrement())
+  title               String          @db.VarChar(150)
+  description         String
+  responsibilities    String
+  requirements        String
+  salary              String?         @db.VarChar(100)
+  positions_available Int             @default(1)
+  additional_info     String?
+  location_id         Int
+  department_id       Int
+  modality_id         Int
+  employment_type_id  Int
+  is_active           Boolean         @default(true)
+  created_at          DateTime        @default(now()) @db.Timestamp(6)
+  updated_at          DateTime        @default(now()) @db.Timestamp(6)
+  created_by          Int
+  application         application[]
+  admin_user          admin_user      @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_job_created_by")
+  department          department      @relation(fields: [department_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_job_department")
+  employment_type     employment_type @relation(fields: [employment_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_job_employment_type")
+  location            location        @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_job_location")
+  modality            modality        @relation(fields: [modality_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_job_modality")
+
+  @@index([created_by], map: "idx_job_created_by")
+  @@index([department_id], map: "idx_job_department_id")
+  @@index([employment_type_id], map: "idx_job_employment_type_id")
+  @@index([location_id], map: "idx_job_location_id")
+  @@index([modality_id], map: "idx_job_modality_id")
+}
+
+model location {
+  id        Int     @id @default(autoincrement())
+  name      String  @unique @db.VarChar(100)
+  is_active Boolean @default(true)
+  job       job[]
+}
+
+model modality {
+  id        Int     @id @default(autoincrement())
+  name      String  @unique @db.VarChar(100)
+  is_active Boolean @default(true)
+  job       job[]
+}
